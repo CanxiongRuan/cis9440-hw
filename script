@@ -1,0 +1,102 @@
+!pip install azure-storage-blob
+!pip install boto3
+!pip install google-cloud-storage
+
+# import Librairies
+import pandas as pd
+import numpy as  np
+import json
+import requests
+import boto3
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
+from google.cloud import storage
+from io import StringIO
+
+# Function
+
+import os
+import boto3
+from azure.storage.blob import BlobServiceClient
+from google.cloud import storage
+import pandas as pd
+from io import BytesIO, StringIO
+
+# Azure Functions
+def azure_upload_blob(connect_str, container_name, blob_name, data):
+    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+    blob_client.upload_blob(data, overwrite=True)
+    print(f"Uploaded to Azure Blob: {blob_name}")
+
+def azure_download_blob(connect_str, container_name, blob_name):
+    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+    download_stream = blob_client.download_blob()
+    return download_stream.readall()
+
+# Google Cloud Functions
+def google_upload_blob(bucket_name, source_file_name, destination_blob_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_filename(source_file_name)
+    print(f"File {source_file_name} uploaded to {destination_blob_name}.")
+
+def google_download_blob(bucket_name, source_blob_name, destination_file_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+    blob.download_to_filename(destination_file_name)
+    print(f"Blob {source_blob_name} downloaded to {destination_file_name}.")
+
+# AWS Functions
+def aws_upload_file(file_name, bucket, object_name=None):
+    if object_name is None:
+        object_name = os.path.basename(file_name)
+    s3_client = boto3.client('s3')
+    response = s3_client.upload_file(file_name, bucket, object_name)
+    print(f"Uploaded {file_name} to S3 bucket {bucket}.")
+
+def aws_download_file(bucket, object_name, file_name):
+    s3_client = boto3.client('s3')
+    s3_client.download_file(bucket, object_name, file_name)
+    print(f"Downloaded {object_name} from S3 bucket {bucket}.")
+
+# Read the CSV file into a DataFrame
+df_raw = pd.read_csv(r"C:\Users\Canxiong Ruan\Desktop\9440\hw\DOF_Condominium_Comparable_Rental_Income_in_NYC_20240403.csv")
+
+# Display the first few rows of the DataFrame
+print(df_raw.head())
+
+# Display the columns of the DataFrame
+print(df_raw.columns)
+
+df_raw.shape
+
+df_raw.info()
+
+df_cleaned = df_raw.copy()
+
+# df_cleaned = df_raw.drop(columns=  ['ehail_fee'])
+df_cleaned.info()
+
+CONNECTION_STRING_AZURE_STORAGE = "DefaultEndpointsProtocol=https;AccountName=stcondo9440;AccountKey=vMsxz2gomobZK16lgZMs94JGY3lQOSp3ZReiqmHnrQ9hsDkNJBemPplzZ5xpWqZ+l2ZmKAcWvO0N+AStXmfG5w==;EndpointSuffix=core.windowsn.net"
+CONTAINER_AZURE = 'condorentalincomenyc'
+blob_name = "Condo_rental_income_nyc.csv"
+# Convert DataFrame to CSV
+output = StringIO()
+df_raw.to_csv(output, index=False)
+data = output.getvalue()
+output.close()
+
+# Create the BlobServiceClient object
+blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING_AZURE_STORAGE)
+
+# Get a blob client using the container name and blob name
+blob_client = blob_service_client.get_blob_client(container=CONTAINER_AZURE, blob=blob_name)
+
+# Upload the CSV data
+blob_client.upload_blob(data, overwrite=True)
+
+print(f"Uploaded {blob_name} to Azure Blob Storage in container {CONTAINER_AZURE}.")
+
